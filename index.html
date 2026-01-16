@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qsee – Text QC Tool (FINAL DEMO PROTOTYPE)</title>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* =====================
+       THEME & RESET
+    ======================*/
+    :root{
+      --primary:#3f5fb5;
+      --bg:#eef1f7;
+      --panel:#ffffff;
+      --border:#d6dae5;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --hl-grammar:#fde8e8;
+      --hl-spelling:#fff4e5;
+      --hl-duplicate:#e6ebff;
+      --hl-plag:#f0fdf4;
+    }
+    *{box-sizing:border-box;font-family:Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text)}
+
+    /* =====================
+       TOP BAR
+    ======================*/
+    .topbar{
+      height:52px;
+      background:var(--primary);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+    }
+    .top-left{display:flex;align-items:center;gap:14px}
+    .logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:17px}
+    .logo i{font-size:18px}
+    .toolbar i{margin-right:14px;cursor:pointer}
+    .window-controls i{margin-left:14px;opacity:.9}
+
+    /* =====================
+       NAV TABS
+    ======================*/
+    .nav{
+      background:#e6e9f2;
+      padding:6px 16px;
+      display:flex;
+      gap:22px;
+      font-size:14px;
+    }
+    .nav span{cursor:pointer;opacity:.6}
+    .nav span.active{opacity:1;font-weight:600}
+
+    /* =====================
+       LAYOUT
+    ======================*/
+    .main{display:flex;height:calc(100vh - 94px)}
+    .left-panel{
+      width:300px;
+      background:var(--panel);
+      border-right:1px solid var(--border);
+      padding:16px;
+      overflow:auto;
+      display:none;
+    }
+    .content{flex:1;padding:20px;overflow:auto}
+
+    /* =====================
+       FILE PANEL
+    ======================*/
+    .file-item{display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer}
+    .file-item:hover{background:#f4f6fb}
+
+    /* =====================
+       UPLOAD SCREEN
+    ======================*/
+    .upload-box{
+      margin:auto;max-width:520px;height:260px;
+      background:#fff;border:2px dashed var(--border);
+      border-radius:10px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;cursor:pointer
+    }
+    .upload-box i{font-size:34px;color:var(--primary);margin-bottom:10px}
+
+    /* =====================
+       HOME RIBBON
+    ======================*/
+    .ribbon{display:flex;gap:16px;margin-bottom:14px}
+    .group{background:#fff;border:1px solid var(--border);padding:10px;border-radius:6px}
+    .group h5{margin:0 0 6px 0;font-size:13px}
+    .group button{margin-right:6px}
+
+    /* =====================
+       TABLE (EXCEL-LIKE)
+    ======================*/
+    table{border-collapse:collapse;width:100%;background:#fff}
+    th,td{border:1px solid var(--border);padding:8px;font-size:14px}
+    th{background:#f3f5fb}
+    td{min-width:180px}
+
+    .grammar{background:var(--hl-grammar)}
+    .spelling{background:var(--hl-spelling)}
+    .duplicate{background:var(--hl-duplicate)}
+    .plag{background:var(--hl-plag)}
+
+    /* =====================
+       PARAMETERS
+    ======================*/
+    .param-section{margin-bottom:18px}
+    .param{border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px}
+    .sub{margin-left:20px;font-size:13px;margin-top:6px}
+    .runqc{width:100%;padding:10px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer}
+
+    /* =====================
+       ANALYSIS
+    ======================*/
+    .analysis{display:flex;gap:16px;margin-top:20px}
+    .card{background:#fff;border:1px solid var(--border);padding:14px;border-radius:8px;min-width:160px}
+
+    /* =====================
+       MODALS
+    ======================*/
+    .modal{
+      position:fixed;top:0;left:0;right:0;bottom:0;
+      background:rgba(0,0,0,.4);display:none;
+      align-items:center;justify-content:center
+    }
+    .modal .box{background:#fff;border-radius:8px;padding:18px;width:420px}
+    .modal h3{margin-top:0}
+  </style>
+</head>
+<body>
+
+<!-- ===================== TOP BAR ===================== -->
+<div class="topbar">
+  <div class="top-left">
+    <div class="logo"><i class="fa-solid fa-eye"></i> Qsee</div>
+    <div class="toolbar">
+      <i class="fa fa-rotate-left"></i>
+      <i class="fa fa-rotate-right"></i>
+      <i class="fa fa-floppy-disk" onclick="openSave()"></i>
+    </div>
+  </div>
+  <div class="window-controls">
+    <i class="fa fa-window-minimize"></i>
+    <i class="fa fa-window-maximize"></i>
+    <i class="fa fa-xmark"></i>
+  </div>
+</div>
+
+<!-- ===================== NAV ===================== -->
+<div class="nav">
+  <span class="active" onclick="switchTab('file')"><i class="fa fa-folder"></i> File</span>
+  <span onclick="switchTab('home')"><i class="fa fa-house"></i> Home</span>
+  <span onclick="switchTab('params')"><i class="fa fa-sliders"></i> Parameters</span>
+  <span onclick="switchTab('analysis')"><i class="fa fa-chart-column"></i> Analysis</span>
+</div>
+
+<div class="main">
+
+  <!-- FILE PANEL -->
+  <div class="left-panel" id="filePanel">
+    <div class="file-item" onclick="goUpload()"><i class="fa fa-arrow-left"></i> Back</div>
+    <div class="file-item" onclick="openFilePicker()"><i class="fa fa-file"></i> New</div>
+    <div class="file-item" onclick="openFilePicker()"><i class="fa fa-folder-open"></i> Open</div>
+    <div class="file-item" onclick="openSave()"><i class="fa fa-save"></i> Save</div>
+    <div class="file-item" onclick="openSave()"><i class="fa fa-save"></i> Save As</div>
+    <div class="file-item" onclick="openMerge()"><i class="fa fa-copy"></i> Merge</div>
+    <div class="file-item"><i class="fa fa-download"></i> Export</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- UPLOAD -->
+    <div id="upload" class="upload-box" onclick="openFilePicker()">
+      <i class="fa fa-plus"></i>
+      <div>Upload File</div>
+    </div>
+
+    <!-- SHEET VIEW -->
+    <div id="sheet" style="display:none">
+
+      <!-- HOME RIBBON -->
+      <div id="home" class="ribbon">
+        <div class="group">
+          <h5>Language</h5>
+          <select><option>English</option><option>Korean</option><option>Hindi</option></select>
+        </div>
+        <div class="group">
+          <h5>Completion</h5>
+          <button onclick="runCompletion()">Check</button>
+        </div>
+        <div class="group">
+          <h5>Format</h5>
+          <button onclick="format('bold')"><b>B</b></button>
+          <button onclick="format('italic')"><i>I</i></button>
+        </div>
+      </div>
+
+      <!-- PARAMETERS + TABLE SIDE BY SIDE -->
+      <div style="display:flex;gap:20px">
+
+        <!-- PARAMETERS -->
+        <div id="params" class="left-panel" style="display:block">
+          <div class="param-section">
+            <h4>Mandatory</h4>
+            <div class="param">
+              <label><input type="checkbox" id="pGrammar"> Grammar & Spelling</label>
+              <div class="sub"><input type="checkbox" id="pG"> Grammar<br><input type="checkbox" id="pS"> Spelling</div>
+            </div>
+            <div class="param">
+              <label><input type="checkbox" id="pDup"> Duplication</label>
+              <div class="sub">
+                <input type="checkbox" id="dExact"> Exact<br>
+                <input type="checkbox" id="dNear"> Near<br>
+                <input type="checkbox" id="dCell"> Cell-to-cell<br>
+                <input type="checkbox" id="dRow"> Row-to-row
+              </div>
+            </div>
+            <div class="param"><label><input type="checkbox" id="pPlag"> Plagiarism</label></div>
+            <div class="param"><label><input type="checkbox" id="pAI"> AI Detection</label></div>
+            <button class="runqc" onclick="runQC()">Run QC</button>
+          </div>
+
+          <div class="param-section">
+            <h4>Additional</h4>
+            <div class="param"><label><input type="checkbox" id="web"> Web Search</label></div>
+            <div class="param"><label><input type="checkbox" id="dict"> Dictionary</label></div>
+            <div class="param"><label><input type="checkbox"> Outliers (Coming soon)</label></div>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div style="flex:1">
+          <table id="dataTable">
+            <thead><tr><th>ID</th><th>Text</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>This sentence are wrong spelled.</td><td></td></tr>
+              <tr><td>2</td><td>This sentence are wrong spelled.</td><td></td></tr>
+              <tr><td>3</td><td>The meeting was held on yesterday.</td><td></td></tr>
+              <tr><td>4</td><td>The meeting was held yesterday.</td><td></td></tr>
+              <tr><td>5</td><td>This is an AI generated content example.</td><td></td></tr>
+              <tr><td>6</td><td>Company policy was updated last year.</td><td></td></tr>
+              <tr><td>7</td><td>Company policy was updated last year.</td><td></td></tr>
+              <tr><td>8</td><td>Near duplicate example sentence here.</td><td></td></tr>
+              <tr><td>9</td><td>Near duplicate example sentence here!</td><td></td></tr>
+              <tr><td>10</td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ANALYSIS -->
+      <div id="analysis" class="analysis" style="display:none">
+        <div class="card">Grammar: 3</div>
+        <div class="card">Duplicates: 4</div>
+        <div class="card">Plagiarism: 18%</div>
+        <div class="card">AI likelihood: 42%</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FILE PICKER -->
+<div class="modal" id="filePicker">
+  <div class="box">
+    <h3>Open File</h3>
+    <p>dummy_dataset.xlsx</p>
+    <button onclick="loadFile()">Open</button>
+    <button onclick="closeModal('filePicker')">Cancel</button>
+  </div>
+</div>
+
+<!-- SAVE -->
+<div class="modal" id="saveModal">
+  <div class="box">
+    <h3>Save File</h3>
+    <input value="dummy_dataset.xlsx" style="width:100%" />
+    <br><br>
+    <button onclick="closeModal('saveModal')">Save</button>
+  </div>
+</div>
+
+<!-- MERGE -->
+<div class="modal" id="mergeModal">
+  <div class="box">
+    <h3>Merge Files</h3>
+    <p>Add another file to merge.</p>
+    <button onclick="closeModal('mergeModal')">Continue</button>
+  </div>
+</div>
+
+<script>
+  function switchTab(tab){
+    document.getElementById('filePanel').style.display = tab==='file'?'block':'none';
+    document.getElementById('home').style.display = tab==='home'?'flex':'none';
+    document.getElementById('params').style.display = tab==='params'?'block':'none';
+    document.getElementById('analysis').style.display = tab==='analysis'?'flex':'none';
+  }
+
+  function openFilePicker(){document.getElementById('filePicker').style.display='flex';}
+  function closeModal(id){document.getElementById(id).style.display='none';}
+  function loadFile(){closeModal('filePicker');document.getElementById('upload').style.display='none';document.getElementById('sheet').style.display='block';}
+  function goUpload(){document.getElementById('sheet').style.display='none';document.getElementById('upload').style.display='flex';}
+  function openSave(){document.getElementById('saveModal').style.display='flex';}
+  function openMerge(){document.getElementById('mergeModal').style.display='flex';}
+
+  function runCompletion(){alert('Completion check complete (mock).');}
+
+  function runQC(){
+    const rows=document.querySelectorAll('#dataTable tbody tr');
+    rows.forEach(r=>r.querySelectorAll('td')[1].className='');
+    if(document.getElementById('pGrammar').checked){
+      rows[0].children[1].classList.add('grammar');
+      rows[2].children[1].classList.add('grammar');
+    }
+    if(document.getElementById('pDup').checked){
+      rows[1].children[1].classList.add('duplicate');
+      rows[6].children[1].classList.add('duplicate');
+    }
+    if(document.getElementById('pPlag').checked){
+      rows[4].children[1].classList.add('plag');
+    }
+    document.getElementById('analysis').style.display='flex';
+  }
+</script>
+
+</body>
+</html>
